@@ -21,6 +21,7 @@ export PGPORT=5432
 echo "Copying extensions to the target cluster..."
 scp postgis_gppkg_target/postgis*.gppkg gpadmin@mdw:/tmp/postgis_target.gppkg
 scp madlib_gppkg_target/madlib*.gppkg gpadmin@mdw:/tmp/madlib_target.gppkg
+scp gpcc_tar_target/metrics_collector*.tar.gz gpadmin@mdw:/tmp/gpcc_target.tar.gz
 
 if test_pxf "$OS_VERSION"; then
     mapfile -t hosts < cluster_env_files/hostfile_all
@@ -82,6 +83,26 @@ SQL_EOF
 
     gppkg -i /tmp/postgis_target.gppkg
     gppkg -i /tmp/madlib_target.gppkg
+    echo 'Installing GPCC Metrics Collector...'
+        tar -zxf /tmp/gpcc_target.tar.gz -C /tmp/
+        cp /tmp/metrics_collector.so /usr/local/greenplum-db-target/lib/postgresql
+        gpscp -f /home/gpadmin/segment_host_list /tmp/metrics_collector.so =:/usr/local/greenplum-db-target/lib/postgresql/
+        scp /tmp/metrics_collector.so smdw:/usr/local/greenplum-db-target/lib/postgresql
+
+        cp /tmp/metrics_collector*.sql /usr/local/greenplum-db-target/share/postgresql/extension/
+        gpscp -f /home/gpadmin/segment_host_list /tmp/metrics_collector*.sql =:/usr/local/greenplum-db-target/share/postgresql/extension/
+        scp /tmp/metrics_collector*.sql smdw:/usr/local/greenplum-db-target/share/postgresql/extension/
+
+        cp /tmp/metrics_collector.control /usr/local/greenplum-db-target/share/postgresql/extension/
+        gpscp -f /home/gpadmin/segment_host_list /tmp/metrics_collector.control =:/usr/local/greenplum-db-target/share/postgresql/extension/
+        scp /tmp/metrics_collector.control smdw:/usr/local/greenplum-db-target/share/postgresql/extension/
+
+    gpconfig -c shared_preload_libraries -v metrics_collector
+    gpstop -air
+    psql -v ON_ERROR_STOP=1 -d postgres <<SQL_EOF
+        SHOW gpcc.enable_send_query_info;
+        CREATE DATABASE gpperfmon;
+SQL_EOF
 
     $(typeset -f test_pxf) # allow local function on remote host
     if test_pxf '$OS_VERSION'; then
@@ -92,6 +113,7 @@ SQL_EOF
         /usr/local/pxf-gp6/bin/pxf cluster init
         psql -v ON_ERROR_STOP=1 -d postgres -c 'CREATE EXTENSION pxf;'
     fi
+
 
     gpstop -a
 

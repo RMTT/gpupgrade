@@ -46,6 +46,10 @@
           resource: madlib_1.19.0_gpdb{{.Source}}_centos{{.CentosVersion}}_gppkg
         - get: madlib_gppkg_target
           resource: madlib_1.19.0_gpdb{{.Target}}_centos{{.CentosVersion}}_gppkg
+        - get: gpcc_tar_source
+          resource: gpcc_gpdb{{.Source}}_centos{{.CentosVersion}}_tar
+        - get: gpcc_tar_target
+          resource: gpcc_gpdb{{.Target}}_centos{{.CentosVersion}}_tar
         {{- if ne .CentosVersion "6" }}
         - get: pxf_rpm_source
           resource: pxf_5_gpdb{{.Source}}_centos{{.CentosVersion}}_rpm
@@ -136,6 +140,7 @@
           {{- if ne .CentosVersion "6" }}
           - name: pxf_rpm_source
           {{- end }}
+          - name: gpcc_tar_source
         run:
           path: gpupgrade_src/ci/scripts/load-extensions.bash
     {{- else }}
@@ -175,6 +180,7 @@
           {{- if ne .CentosVersion "6" }}
           - name: pxf_rpm_target
           {{- end }}
+          - name: gpcc_tar_target
         run:
           path: gpupgrade_src/ci/scripts/upgrade-extensions.bash
       params:

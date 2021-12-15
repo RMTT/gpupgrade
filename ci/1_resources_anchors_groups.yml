@@ -188,6 +188,23 @@ resources:
     region_name: us-west-2
     bucket: madlib-artifacts  # FIXME: update to prod bucket once MADlib is released.
     versioned_file: bin_madlib_artifacts_centos{{.CentosVersion}}/madlib-master-gp{{.GPVersion}}-rhel{{.CentosVersion}}-x86_64.gppkg
+  {{- if ne .GPVersion "6" }}
+- name: gpcc_gpdb{{.GPVersion}}_centos{{.CentosVersion}}_tar
+  type: s3
+  source:
+    region_name: us-west-2
+    bucket: gpdb-stable-concourse-builds
+    access_key_id: ((bucket-access-key-id))
+    secret_access_key: ((bucket-secret-access-key))
+    versioned_file: components/gpcc/metrics_collector-4.14.0-centos{{.CentosVersion}}.tar.gz
+  {{- else }}
+- name: gpcc_gpdb{{.GPVersion}}_centos{{.CentosVersion}}_tar
+  type: gcs
+  source:
+    json_key: ((concourse-gcs-resources-service-account-key))
+    bucket: pivotal-gpdb-concourse-resources-prod
+    regexp: metrics-collector/released/gpdb{{.GPVersion}}/metrics_collector-6.(.*)-rhel{{.CentosVersion}}_x86_64.tar.gz
+  {{- end }}
 
 # NOTE: Skip creating the pxf resources for centos6 since pxf5 gpdb6 is not supported for centos6. Thus, we can only
 # test pxf upgrades on centos7.

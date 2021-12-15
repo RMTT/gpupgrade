@@ -18,6 +18,7 @@ echo "Copying extensions to the source cluster..."
 scp postgis_gppkg_source/postgis*.gppkg gpadmin@mdw:/tmp/postgis_source.gppkg
 scp sqldump/*.sql gpadmin@mdw:/tmp/postgis_dump.sql
 scp madlib_gppkg_source/madlib*.gppkg gpadmin@mdw:/tmp/madlib_source.gppkg
+scp gpcc_tar_source/metrics_collector*.tar.gz gpadmin@mdw:/tmp/gpcc_source.tar.gz
 
 echo "Installing extensions and sample data on source cluster..."
 time ssh -n mdw "
@@ -49,6 +50,19 @@ SQL_EOF
 
         CREATE VIEW madlib_test_view AS SELECT madlib.normal_quantile(0.5, 0, 1);
         CREATE VIEW madlib_test_agg AS SELECT madlib.mean(value) FROM madlib_test_type;
+SQL_EOF
+
+    echo 'Installing GPCC Metrics Collector...'
+    tar -zxf /tmp/gpcc_source.tar.gz -C /tmp/
+    cp /tmp/metrics_collector.so /usr/local/greenplum-db-source/lib/postgresql
+    gpscp -f /home/gpadmin/segment_host_list /tmp/metrics_collector.so =:/usr/local/greenplum-db-source/lib/postgresql/
+    scp /tmp/metrics_collector.so smdw:/usr/local/greenplum-db-source/lib/postgresql
+
+    gpconfig -c shared_preload_libraries -v metrics_collector
+    gpstop -air
+
+    psql -v ON_ERROR_STOP=1 -d postgres <<SQL_EOF
+        SHOW gpcc.enable_send_query_info;
 SQL_EOF
 "
 
