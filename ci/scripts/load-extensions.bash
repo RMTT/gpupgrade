@@ -253,14 +253,19 @@ ssh -n mdw "
 
     echo 'Loading plr data...'
     psql -v ON_ERROR_STOP=1 -d postgres <<SQL_EOF
+    CREATE EXTENSION plr;
     CREATE OR REPLACE FUNCTION r_norm(n integer, mean float8,
         std_dev float8) RETURNS float8[ ] AS
-    \$\$
+    \\\$\\\$
         x<-rnorm(n,mean,std_dev)
         return(x)
-    \$\$
+    \\\$\\\$
     LANGUAGE 'plr';
+SQL_EOF
 
+    gpstop -ra
+
+    psql -v ON_ERROR_STOP=1 -d postgres <<SQL_EOF
     CREATE TABLE test_norm_var
     AS SELECT id, r_norm(10,0,1) as x
     FROM (SELECT generate_series(1,30:: bigint) AS ID) foo
