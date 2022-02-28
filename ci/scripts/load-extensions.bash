@@ -239,7 +239,7 @@ for host in "${hosts[@]}"; do
     ssh -n "centos@${host}" "
         set -eux -o pipefail
 
-        sudo yum install -y r-base
+        sudo yum install -y R
     "
 done
 
