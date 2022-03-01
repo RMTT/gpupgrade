@@ -264,7 +264,6 @@ ssh -n mdw "
         return(x)
     \\\$\\\$
     LANGUAGE 'plr';
-SQL_EOF
 
     CREATE TABLE test_norm_var
     AS SELECT id, r_norm(10,0,1) as x
